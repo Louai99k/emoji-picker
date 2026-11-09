@@ -62,7 +62,8 @@ case "${1:-start}" in
         printf '%s\n' \
             'Usage: emoji-picker [start|open|close|toggle|uninstall]' \
             'With no arguments, starts the picker.' \
-            'open, close, and toggle control an already running instance.' \
+            'open and toggle start the picker in the background if needed.' \
+            'close hides an already running instance.' \
             'uninstall removes the installed files and launcher for this user.'
         exit 0
         ;;
@@ -93,7 +94,23 @@ fi
 
 case "${1:-start}" in
     start) exec quickshell -p "$app_dir" ;;
-    open|close|toggle) exec quickshell ipc -p "$app_dir" call picker "$1" ;;
+    close) exec quickshell ipc -p "$app_dir" call picker close ;;
+    open|toggle)
+        if ipc_output=$(quickshell --no-color ipc -p "$app_dir" call picker "$1" 2>&1); then
+            exit 0
+        else
+            ipc_status=$?
+        fi
+        case "$ipc_output" in
+            *'No running instances for '*)
+                exec quickshell --daemonize --no-duplicate -p "$app_dir"
+                ;;
+            *)
+                printf '%s\n' "$ipc_output" >&2
+                exit "$ipc_status"
+                ;;
+        esac
+        ;;
 esac
 LAUNCHER
 
@@ -111,7 +128,7 @@ cat > "$desktop_dir/emoji-picker.desktop" <<DESKTOP
 Type=Application
 Name=Emoji Picker
 Comment=Search and copy emojis
-Exec="$desktop_exec"
+Exec="$desktop_exec" open
 Icon=accessories-character-map
 Terminal=false
 Categories=Utility;

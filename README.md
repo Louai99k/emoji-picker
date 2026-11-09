@@ -64,13 +64,18 @@ export PATH="$HOME/.local/bin:$PATH"
 Or run `~/.local/bin/emoji-picker` directly. The installer does not edit your
 shell configuration, install dependencies, or create autostart entries.
 
-To control an already running installed instance:
+Open or control the installed picker:
 
 ```sh
 emoji-picker open
 emoji-picker close
 emoji-picker toggle
 ```
+
+`open` and `toggle` start a background instance when none is running. Otherwise,
+they control the existing window. `close` requires a running instance. Launching
+**Emoji Picker** from an application launcher uses `open` as well. Running
+`emoji-picker` or `emoji-picker start` directly starts it in the foreground.
 
 For Hyprland, use these entries with the installed copy:
 
