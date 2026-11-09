@@ -109,8 +109,9 @@ quickshell -p .
 
 The picker opens on startup. Search by emoji name, then click an emoji or press
 Enter to select the first result. Down moves from search into the grid; use
-arrow keys and Enter to select there. Escape hides the picker without stopping
-the background instance.
+arrow keys and Enter to select there. Escape or your window manager's close
+shortcut (such as Super+Q) hides the picker without stopping the background
+instance. Use `emoji-picker open` to show it again.
 
 Selection copies the emoji, hides the picker, restores the application captured
 when opening, and sends **Ctrl+Shift+V**, preserving the original paste shortcut.

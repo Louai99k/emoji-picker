@@ -159,6 +159,8 @@ ShellRoot {
         minimumSize: Qt.size(240, 240)
         color: "#202024"
 
+        onClosed: root.closePicker()
+
         onVisibleChanged: {
             if (visible)
                 Qt.callLater(() => search.forceActiveFocus());
