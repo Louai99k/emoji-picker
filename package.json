@@ -1,6 +1,15 @@
 {
   "name": "emoji-picker",
+  "description": "A themed Quickshell emoji picker for Hyprland",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Louai99k/astal-emoji-picker.git"
+  },
+  "homepage": "https://github.com/Louai99k/astal-emoji-picker#readme",
+  "bugs": {
+    "url": "https://github.com/Louai99k/astal-emoji-picker/issues"
+  },
   "scripts": {
     "start": "quickshell -p .",
     "open": "quickshell ipc -p . call picker open",
