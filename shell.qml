@@ -169,8 +169,8 @@ ShellRoot {
 
     Process {
         id: pasteEmoji
-        // Retain the original Ctrl+Shift+V shortcut and ydotool socket.
-        environment: ({ YDOTOOL_SOCKET: "/tmp/.ydotool_socket" })
+        // Honor the session's socket setting; retain the existing default.
+        environment: ({ YDOTOOL_SOCKET: Quickshell.env("YDOTOOL_SOCKET") || "/tmp/.ydotool_socket" })
         command: ["ydotool", "key", "29:1", "42:1", "47:1", "29:0", "42:0", "47:0"]
         stderr: StdioCollector {}
         onExited: (exitCode, exitStatus) => {

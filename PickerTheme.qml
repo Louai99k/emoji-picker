@@ -5,7 +5,8 @@ import Quickshell.Io
 Scope {
     id: theme
 
-    readonly property string palettePath: Quickshell.env("HOME") + "/dotfiles/.config/theme/palette.conf"
+    readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config"
+    readonly property string palettePath: Quickshell.env("EMOJI_PICKER_PALETTE") || configHome + "/theme/palette.conf"
     readonly property var defaults: ({
         base: "191724", surface: "1f1d2e", overlay: "26233a",
         muted: "6e6a86", subtle: "908caa", text: "e0def4",
