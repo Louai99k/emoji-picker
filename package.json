@@ -2,12 +2,9 @@
   "name": "emoji-picker",
   "license": "MIT",
   "scripts": {
-    "start": "ags run -d $(pwd)"
-  },
-  "dependencies": {
-    "astal": "/usr/share/astal/gjs"
-  },
-  "devDependencies": {
-    "typescript": "^5.7.3"
+    "start": "quickshell -p .",
+    "open": "quickshell ipc -p . call picker open",
+    "close": "quickshell ipc -p . call picker close",
+    "toggle": "quickshell ipc -p . call picker toggle"
   }
 }
