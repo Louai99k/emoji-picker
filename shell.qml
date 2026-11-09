@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
@@ -13,13 +13,43 @@ ShellRoot {
     property string targetAddress: ""
     property bool opening: false
     property bool busy: false
+    property string selectedGroup: ""
+    property var hoveredEmoji: null
+    readonly property var categories: [
+        { group: "", label: "All" },
+        { group: "smileys-emotion", label: "Faces" },
+        { group: "people-body", label: "People" },
+        { group: "animals-nature", label: "Nature" },
+        { group: "food-drink", label: "Food" },
+        { group: "travel-places", label: "Travel" },
+        { group: "activities", label: "Activities" },
+        { group: "objects", label: "Objects" },
+        { group: "symbols", label: "Symbols" },
+        { group: "flags", label: "Flags" }
+    ]
+    readonly property var previewEmoji: hoveredEmoji || (grid ? matches[grid.currentIndex] : null) || null
     readonly property var matches: {
-        const query = search.text.toLowerCase();
-        return emojis.filter(emoji => emoji.slug.includes(query)
-            || emoji.unicodeName.toLowerCase().includes(query));
+        const query = search.text.trim().toLowerCase();
+        return emojis.filter(emoji => (!selectedGroup || emoji.group === selectedGroup)
+            && (emoji.slug.includes(query) || emoji.unicodeName.toLowerCase().includes(query)));
     }
 
+    function emojiName(emoji) {
+        return emoji ? emoji.unicodeName.replace(/^E[\d.]+\s+/, "") : "Choose an emoji";
+    }
+
+    onMatchesChanged: {
+        hoveredEmoji = null;
+        if (grid) {
+            grid.currentIndex = -1;
+            grid.positionViewAtBeginning();
+        }
+    }
+
+    PickerTheme { id: theme }
+
     function openPicker() {
+        theme.reload();
         if (busy || opening || captureWindow.running)
             return;
         if (picker.visible) {
@@ -154,10 +184,10 @@ ShellRoot {
         id: picker
         visible: false
         title: "Emoji Picker"
-        implicitHeight: Math.max(240, Math.floor(screen.height / 2))
-        implicitWidth: Math.floor(implicitHeight * 4 / 3)
-        minimumSize: Qt.size(240, 240)
-        color: "#202024"
+        implicitHeight: Math.min(560, Math.floor(screen.height * 0.7))
+        implicitWidth: 640
+        minimumSize: Qt.size(360, 360)
+        color: theme.base
 
         onClosed: root.closePicker()
 
@@ -166,21 +196,94 @@ ShellRoot {
                 Qt.callLater(() => search.forceActiveFocus());
         }
 
+        Rectangle {
+            anchors.fill: parent
+            color: "transparent"
+            border.color: theme.highlight
+        }
+
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 12
-            spacing: 8
+            anchors.margins: 20
+            spacing: 14
 
             Keys.onEscapePressed: root.closePicker()
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Rectangle {
+                    implicitWidth: 36
+                    implicitHeight: 36
+                    radius: 8
+                    color: Qt.alpha(theme.accent, 0.12)
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "☺"
+                        font.pixelSize: 25
+                        color: theme.accent
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Emoji picker"
+                    color: theme.text
+                    font.family: theme.fontFamily
+                    font.pointSize: theme.fontSize + 3
+                    font.weight: Font.DemiBold
+                }
+
+                Text {
+                    text: root.matches.length.toLocaleString() + " emojis"
+                    color: theme.subtle
+                    font.family: theme.monoFamily
+                    font.pointSize: theme.fontSize - 1
+                }
+
+                Button {
+                    id: closeButton
+                    implicitWidth: 32
+                    implicitHeight: 32
+                    text: "×"
+                    Accessible.name: "Close emoji picker"
+                    onClicked: root.closePicker()
+                    background: Rectangle {
+                        radius: 6
+                        color: closeButton.hovered || closeButton.visualFocus ? theme.overlay : "transparent"
+                        border.width: closeButton.visualFocus ? 1 : 0
+                        border.color: theme.accent
+                    }
+                    contentItem: Text {
+                        text: closeButton.text
+                        color: closeButton.hovered ? theme.text : theme.subtle
+                        font.pixelSize: 23
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
 
             TextField {
                 id: search
                 Layout.fillWidth: true
-                placeholderText: "Search emojis…"
+                implicitHeight: 46
+                leftPadding: 14
+                rightPadding: 14
+                placeholderText: "Search by name…"
+                color: theme.text
+                placeholderTextColor: theme.subtle
+                selectionColor: theme.accent
+                selectedTextColor: theme.base
+                font.family: theme.fontFamily
+                font.pointSize: theme.fontSize
                 selectByMouse: true
-                onTextChanged: {
-                    grid.currentIndex = -1;
-                    grid.positionViewAtBeginning();
+                background: Rectangle {
+                    radius: 8
+                    color: theme.surface
+                    border.width: 1
+                    border.color: search.activeFocus ? theme.accent : theme.highlight
                 }
                 Keys.onDownPressed: {
                     if (grid.count > 0) {
@@ -188,18 +291,76 @@ ShellRoot {
                         grid.forceActiveFocus();
                     }
                 }
-                onAccepted: {
-                    if (root.matches.length > 0)
-                        root.selectEmoji(root.matches[0]);
+                onAccepted: if (root.matches.length > 0) root.selectEmoji(root.matches[0])
+            }
+
+            Flickable {
+                Layout.fillWidth: true
+                implicitHeight: 32
+                contentWidth: categoryRow.width
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+
+                Row {
+                    id: categoryRow
+                    spacing: 6
+
+                    Repeater {
+                        model: root.categories
+                        delegate: Button {
+                            id: categoryButton
+                            required property var modelData
+                            readonly property bool selected: root.selectedGroup === modelData.group
+                            text: modelData.label
+                            implicitHeight: 32
+                            leftPadding: 12
+                            rightPadding: 12
+                            onClicked: root.selectedGroup = modelData.group
+                            Accessible.name: modelData.label + " emojis"
+                            background: Rectangle {
+                                radius: 6
+                                color: categoryButton.selected ? theme.accent
+                                    : categoryButton.hovered ? theme.overlay : theme.surface
+                                border.width: categoryButton.visualFocus ? 1 : 0
+                                border.color: theme.accent
+                            }
+                            contentItem: Text {
+                                text: categoryButton.text
+                                color: categoryButton.selected ? theme.base : theme.subtle
+                                font.family: theme.fontFamily
+                                font.pointSize: theme.fontSize - 1
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                    }
                 }
             }
 
-            Label {
+            Rectangle {
                 Layout.fillWidth: true
-                visible: text.length > 0
-                text: root.loadError || root.actionError
-                color: "#ffb4ab"
-                wrapMode: Text.Wrap
+                implicitHeight: 1
+                color: theme.highlight
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: errorText.implicitHeight + 20
+                visible: errorText.text.length > 0
+                radius: 6
+                color: Qt.alpha(theme.love, 0.1)
+                Text {
+                    id: errorText
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    text: root.loadError || root.actionError
+                    color: theme.love
+                    font.family: theme.fontFamily
+                    font.pointSize: theme.fontSize - 1
+                    wrapMode: Text.Wrap
+                }
             }
 
             GridView {
@@ -207,39 +368,65 @@ ShellRoot {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
-                cellWidth: 40
-                cellHeight: 40
+                // Whole columns fill the available width, including after a resize.
+                cellWidth: width / Math.max(1, Math.floor((width - 12) / 56))
+                cellHeight: 60
                 model: root.matches
                 currentIndex: -1
                 keyNavigationEnabled: true
                 boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollBar {}
-
-                Keys.onReturnPressed: {
-                    if (currentIndex >= 0)
-                        root.selectEmoji(root.matches[currentIndex]);
+                highlightMoveDuration: 0
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    width: 5
+                    policy: ScrollBar.AsNeeded
+                    contentItem: Rectangle {
+                        implicitWidth: 5
+                        implicitHeight: 32
+                        radius: 2
+                        color: scrollBar.pressed ? theme.accent : theme.muted
+                        opacity: scrollBar.size < 1 ? 0.7 : 0
+                    }
+                    background: Item {}
                 }
-                Keys.onEnterPressed: {
-                    if (currentIndex >= 0)
-                        root.selectEmoji(root.matches[currentIndex]);
+
+                Keys.onReturnPressed: if (currentIndex >= 0) root.selectEmoji(root.matches[currentIndex])
+                Keys.onEnterPressed: if (currentIndex >= 0) root.selectEmoji(root.matches[currentIndex])
+                Keys.onUpPressed: event => {
+                    if (currentIndex < Math.floor(width / cellWidth)) {
+                        search.forceActiveFocus();
+                        currentIndex = -1;
+                    } else {
+                        event.accepted = false;
+                    }
                 }
 
-                delegate: Rectangle {
+                delegate: Item {
                     id: cell
                     required property var modelData
                     required property int index
                     width: grid.cellWidth
                     height: grid.cellHeight
-                    radius: 4
-                    color: mouse.containsMouse || GridView.isCurrentItem ? "#414149" : "transparent"
-                    border.width: mouse.containsMouse || GridView.isCurrentItem ? 1 : 0
-                    border.color: "#a0a0aa"
+                    readonly property bool selected: GridView.isCurrentItem
+                    Accessible.role: Accessible.Button
+                    Accessible.name: root.emojiName(modelData)
+                    Accessible.onPressAction: root.selectEmoji(modelData)
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: cell.modelData.character
-                        font.pixelSize: 24
-                        color: "white"
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        radius: 8
+                        color: cell.selected ? Qt.alpha(theme.accent, 0.16)
+                            : mouse.containsMouse ? theme.overlay : "transparent"
+                        border.width: cell.selected ? 1 : 0
+                        border.color: theme.accent
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: cell.modelData.character
+                            font.pixelSize: 29
+                            color: theme.text
+                        }
                     }
 
                     MouseArea {
@@ -247,19 +434,83 @@ ShellRoot {
                         anchors.fill: parent
                         hoverEnabled: true
                         enabled: !root.busy
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: root.hoveredEmoji = cell.modelData
+                        onExited: if (root.hoveredEmoji === cell.modelData) root.hoveredEmoji = null
                         onClicked: root.selectEmoji(cell.modelData)
                     }
-
-                    ToolTip.visible: mouse.containsMouse
-                    ToolTip.delay: 500
-                    ToolTip.text: modelData.unicodeName
                 }
 
-                Label {
+                Column {
                     anchors.centerIn: parent
+                    width: parent.width
+                    spacing: 8
                     visible: grid.count === 0 && !root.loadError
-                    text: "No emojis found"
-                    color: "#c0c0ca"
+                    Text {
+                        width: parent.width
+                        text: "No matching emojis"
+                        color: theme.text
+                        font.family: theme.fontFamily
+                        font.pointSize: theme.fontSize + 1
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                    Text {
+                        width: parent.width
+                        text: "Try another name or category."
+                        color: theme.subtle
+                        font.family: theme.fontFamily
+                        font.pointSize: theme.fontSize - 1
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 1
+                color: theme.highlight
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 12
+
+                Text {
+                    Layout.preferredWidth: 34
+                    text: root.previewEmoji ? root.previewEmoji.character : "☺"
+                    color: theme.accent
+                    font.pixelSize: 27
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 3
+                    Text {
+                        Layout.fillWidth: true
+                        text: root.emojiName(root.previewEmoji)
+                        color: theme.text
+                        font.family: theme.fontFamily
+                        font.pointSize: theme.fontSize - 1
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: root.busy ? "Copying…" : root.previewEmoji
+                            ? root.previewEmoji.subGroup.replace(/-/g, " ") : "Hover or use the arrow keys"
+                        color: theme.subtle
+                        font.family: theme.fontFamily
+                        font.pointSize: theme.fontSize - 2
+                        elide: Text.ElideRight
+                    }
+                }
+
+                Text {
+                    visible: picker.width >= 480
+                    text: "Enter  select   ·   Esc  close"
+                    color: theme.subtle
+                    font.family: theme.monoFamily
+                    font.pointSize: theme.fontSize - 2
                 }
             }
         }

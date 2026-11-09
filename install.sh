@@ -27,7 +27,7 @@ app_dir="$data_home/emoji-picker"
 bin_dir="$HOME/.local/bin"
 desktop_dir="$data_home/applications"
 
-for filename in shell.qml emojis.json; do
+for filename in shell.qml PickerTheme.qml emojis.json; do
     if [ ! -f "$source_dir/$filename" ]; then
         printf 'Missing application file: %s\n' "$source_dir/$filename" >&2
         exit 1
@@ -36,8 +36,9 @@ done
 
 mkdir -p "$app_dir" "$bin_dir" "$desktop_dir"
 if [ "$source_dir" != "$app_dir" ]; then
-    install -m 644 "$source_dir/shell.qml" "$app_dir/shell.qml"
-    install -m 644 "$source_dir/emojis.json" "$app_dir/emojis.json"
+    for filename in shell.qml PickerTheme.qml emojis.json; do
+        install -m 644 "$source_dir/$filename" "$app_dir/$filename"
+    done
 fi
 
 cat > "$bin_dir/emoji-picker" <<'LAUNCHER'
@@ -69,7 +70,7 @@ case "${1:-start}" in
         ;;
     uninstall)
         # Remove only files owned by this installer, retaining any extra files.
-        rm -f -- "$app_dir/shell.qml" "$app_dir/emojis.json" \
+        rm -f -- "$app_dir/shell.qml" "$app_dir/PickerTheme.qml" "$app_dir/emojis.json" \
             "$data_home/applications/emoji-picker.desktop"
         if [ -d "$app_dir" ]; then
             rmdir -- "$app_dir" 2>/dev/null || :
@@ -87,7 +88,7 @@ if ! command -v quickshell >/dev/null 2>&1; then
     exit 1
 fi
 
-if [ ! -f "$app_dir/shell.qml" ] || [ ! -f "$app_dir/emojis.json" ]; then
+if [ ! -f "$app_dir/shell.qml" ] || [ ! -f "$app_dir/PickerTheme.qml" ] || [ ! -f "$app_dir/emojis.json" ]; then
     printf '%s\n' 'Emoji picker files are missing. Rerun install.sh from the project.' >&2
     exit 1
 fi
