@@ -1,7 +1,6 @@
 # Emoji picker
 
-A Quickshell / Qt Quick emoji picker for Hyprland. No AGS, Astal, GJS,
-TypeScript, or Node.js installation is required.
+A Quickshell / Qt Quick emoji picker for Hyprland.
 
 The picker uses a regular desktop window (`FloatingWindow`) titled **Emoji Picker**.
 Hyprland manages its placement, focus, and floating or tiled state through your
@@ -189,7 +188,7 @@ bind = SUPER, E, exec, quickshell ipc -p /home/luay/me/projects/emoji-picker cal
 ```
 
 Adjust the path if you move the project. The IPC commands require an already
-running instance. Replace any previous AGS startup entries and keybindings.
+running instance.
 
 The optional `package.json` only provides `start`, `open`, `close`, and `toggle`
 aliases for npm/yarn users; it has no package dependencies and requires no install.
