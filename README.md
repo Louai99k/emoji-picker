@@ -84,6 +84,25 @@ exec-once = ~/.local/bin/emoji-picker
 bind = SUPER, E, exec, ~/.local/bin/emoji-picker toggle
 ```
 
+### Make the window float
+
+`FloatingWindow` creates a regular desktop window; Hyprland still decides whether
+to tile or float it. For a floating picker, add this rule to your Hyprland Lua
+configuration (for example, `~/.config/hypr/window.lua` if your main config loads it):
+
+```lua
+hl.window_rule({
+    name = "emoji-picker-float",
+    match = { title = "^Emoji Picker$" },
+    float = true,
+    center = true,
+})
+```
+
+The rule applies when the window opens. Close and reopen the picker after the
+configuration reloads. The installer does not modify your Hyprland configuration.
+See the [Hyprland window rules documentation](https://wiki.hypr.land/configuring/core/rules/window-rules/).
+
 ## Uninstall
 
 Run without sudo:
